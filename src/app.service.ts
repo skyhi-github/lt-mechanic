@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 import { Cron } from '@nestjs/schedule';
+import { formatDate } from './util/helper';
 
 interface LoginRequest {
   companyCode: string;
@@ -76,7 +77,7 @@ export class AppService {
       'https://bca-ltm.ltlabs.co/msv/tickets/api/tickets',
       {
         params: {
-          reportedDt: '2025-02-01~2025-02-01',
+          reportedDt: `${formatDate(new Date())}~${formatDate(new Date())}`,
           ticketType: 'r',
           status: 17168,
           currentPage: 1,
@@ -111,7 +112,7 @@ export class AppService {
       'https://bca-ltm.ltlabs.co/msv/tickets/api/tickets',
       {
         params: {
-          reportedDt: '2025-02-01~2025-02-01',
+          reportedDt: `${formatDate(new Date())}~${formatDate(new Date())}`,
           ticketType: 'm',
           status: 17192,
           currentPage: 1,
@@ -179,7 +180,7 @@ export class AppService {
         status,
         ticketType,
         subject,
-        inrepairDuration,
+        inrepairDuration: inrepairDuration,
         closedDuration,
       };
     });
@@ -203,6 +204,7 @@ export class AppService {
         summary[key].inrepairDuration + summary[key].closedDuration;
       summary[key].idle_percent =
         (((600 - totalDuration) / 600) * 100).toFixed(0) + '%';
+      summary[key].Date = formatDate(new Date());
     }
 
     return summaryArray;
