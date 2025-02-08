@@ -1,8 +1,8 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 import { Cron } from '@nestjs/schedule';
 import { formatDate } from './util/helper';
-
 interface LoginRequest {
   companyCode: string;
   username: string;
@@ -208,5 +208,47 @@ export class AppService {
     }
 
     return summaryArray;
+  }
+
+  async generateChart() {
+    const QuickChart = require('quickchart-js');
+
+    const myChart = new QuickChart();
+    myChart.setConfig({
+      type: 'line',
+      data: {
+        labels: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'],
+        datasets: [
+          {
+            label: 'Smoothed Data',
+            data: (function exponentialSmoothing(data, alpha) {
+              const smoothedData = [data[0]];
+
+              for (let i = 1; i < data.length; i++) {
+                const previousPoint = smoothedData[i - 1];
+                const currentPoint = data[i];
+                const smoothedPoint =
+                  alpha * currentPoint + (1 - alpha) * previousPoint;
+                smoothedData.push(smoothedPoint);
+              }
+
+              return smoothedData;
+            })(
+              // Your raw data goes here:
+              [10, 12, 13, 15, 14, 13, 15, 17, 18, 17],
+              // Smoothing parameter ALPHA:
+              0.5,
+            ),
+          },
+          {
+            label: 'Acceptable Idle Percentage',
+            data: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
+            fill: false,
+          },
+        ],
+      },
+    });
+    await myChart.toFile('./images/mychart.png');
+    return myChart.getUrl();
   }
 }

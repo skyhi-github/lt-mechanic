@@ -7,6 +7,6 @@ export class AppController {
 
   @Get('ticket-report')
   report() {
-    return this.appService.reports();
+    return this.appService.generateChart();
   }
 }
