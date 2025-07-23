@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MailerModule } from '@nestjs-modules/mailer';
+import { TasksService } from './tasks.service';
 
 @Module({
   imports: [
@@ -15,13 +16,13 @@ import { MailerModule } from '@nestjs-modules/mailer';
         debug: true,
         connectionTimeout: 10000,
         auth: {
-          user: 'admin@manozagahostinger.online',
+          user: 'e-leave@bca-daily.com',
           pass: '@Manozaga0',
         },
       },
     }),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, TasksService],
 })
 export class AppModule {}

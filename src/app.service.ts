@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
-import { Cron } from '@nestjs/schedule';
 import { formatDate } from './util/helper';
+import e from 'express';
 interface LoginRequest {
   companyCode: string;
   username: string;
@@ -76,12 +76,14 @@ export class AppService {
     const repair_tickets = axios.get(
       'https://bca-ltm.ltlabs.co/msv/tickets/api/tickets',
       {
-        params: {
-          reportedDt: `${formatDate(new Date())}~${formatDate(new Date())}`,
-          ticketType: 'r',
-          status: 17168,
-          currentPage: 1,
-          pageSize: 1000,
+      params: {
+      pageSize: 10,
+      currentPage: 1,
+      reportedDt: `${formatDate(new Date())}~${formatDate(new Date())}`,
+      ticketType: 'r',
+      status: 17168,
+      sort: 'a.reportedDt',
+      sortDirection: 'desc',
         },
         headers: {
           Accept: 'application/json, text/plain, */*',
@@ -112,11 +114,13 @@ export class AppService {
       'https://bca-ltm.ltlabs.co/msv/tickets/api/tickets',
       {
         params: {
+          pageSize: 1000,
+          currentPage: 1,
           reportedDt: `${formatDate(new Date())}~${formatDate(new Date())}`,
           ticketType: 'm',
           status: 17192,
-          currentPage: 1,
-          pageSize: 1000,
+          sort: 'a.reportedDt',
+          sortDirection: 'desc',
         },
         headers: {
           Accept: 'application/json, text/plain, */*',
@@ -143,71 +147,68 @@ export class AppService {
       },
     );
 
-    let combine_tickets;
-
-    const responses = await Promise.all([repair_tickets, maintenance_tickets])
-      .then((responses) => {
-        const [response1, response2] = responses; // Destructure the responses
-        combine_tickets = [
-          ...response1.data.tickets.result,
-          ...response2.data.tickets.result,
-        ];
-        return combine_tickets;
-      })
-      .catch((error) => {
-        console.log('Error in one or more requests:', error);
-        throw error; // Rethrow the error to be handled by the caller
-      });
-
-    return responses;
+    return [repair_tickets, maintenance_tickets];
   }
 
-  async reports() {
-    const tickets = await this.getTicketReport();
-    const result = tickets.map((ticket) => {
-      const {
-        grabbedBy,
-        reportedDt,
-        status,
-        ticketType,
-        subject,
-        inrepairDuration,
-        closedDuration,
-      } = ticket;
-      return {
-        grabbedBy,
-        reportedDt,
-        status,
-        ticketType,
-        subject,
-        inrepairDuration: inrepairDuration,
-        closedDuration,
-      };
-    });
-
-    const summary = result.reduce((acc, ticket) => {
-      if (!acc[ticket.grabbedBy]) {
-        acc[ticket.grabbedBy] = { inrepairDuration: 0, closedDuration: 0 };
-      }
-      acc[ticket.grabbedBy].inrepairDuration += ticket.inrepairDuration || 0;
-      acc[ticket.grabbedBy].closedDuration += ticket.closedDuration || 0;
-      return acc;
-    }, {});
-    const summaryArray = [];
-    for (const key in summary) {
-      summary[key].employee_name = employee_name.find(
-        (employee) => employee.id === key,
-      ).name;
-      summary[key].employee_id = key;
-      summaryArray.push(summary[key]);
-      const totalDuration =
-        summary[key].inrepairDuration + summary[key].closedDuration;
-      summary[key].idle_percent =
-        (((600 - totalDuration) / 600) * 100).toFixed(0) + '%';
-      summary[key].Date = formatDate(new Date());
+ sumInrepairByGrabbedBy(tickets) {
+  const map = {};
+  tickets.forEach(ticket => {
+    // skip if no grabbedBy (sometimes might be null/undefined)
+    if (!ticket.grabbedBy) return;
+    // treat null/undefined inrepairDuration as 0
+    const duration = typeof ticket.inrepairDuration === 'number' ? ticket.inrepairDuration : 0;
+    if (!map[ticket.grabbedBy]) {
+      map[ticket.grabbedBy] = 0;
     }
+    map[ticket.grabbedBy] += duration;
+  });
 
-    return summaryArray;
+  // transform map to array of objects
+  return Object.entries(map).map(([employeeId, totalRepairDuration]) => ({
+    employeeId,
+    totalRepairDuration
+  }));
+}
+
+ sumInMaintenanceByGrabbedBy(tickets) {
+  const map = {};
+  tickets.forEach(ticket => {
+    if (!ticket.grabbedBy) return;
+    const duration = typeof ticket.closedDuration === 'number' ? ticket.closedDuration : 0;
+    if (!map[ticket.grabbedBy]) {
+      map[ticket.grabbedBy] = 0;
+    }
+    map[ticket.grabbedBy] += duration;
+  });
+
+  return Object.entries(map).map(([employeeId]) => ({
+    employeeId
+  }));
+}
+
+  async dailyReport() {
+
+   const performanceReport = {
+    employees: employee_name.map((employee) => {
+      return {
+        employee_name: employee.name,
+        employee_id: employee.id,
+        nptPercentage: Math.floor(Math.random() * 100),
+        default_working_hours: 600,
+        repair_tickets: 300,
+        maintenance_tickets: 300,
+      };
+    }),
+   }
+
+   const [repair_tickets, maintenance_tickets] = await this.getTicketReport();
+   const repairTickets = (await repair_tickets).data.tickets.result;
+   const mainTenanceTickets = (await maintenance_tickets).data.tickets.result;
+   const sumRepairTickets = this.sumInrepairByGrabbedBy(repairTickets);
+   const sumMaintenanceTickets = this.sumInMaintenanceByGrabbedBy(mainTenanceTickets);
+   console.log(sumMaintenanceTickets)
+  //  const sumMaintenanceTickets = this.sumMaintenanceTickets((await maintenance_tickets).data);
+    return sumRepairTickets;
   }
 
   async generateChart() {

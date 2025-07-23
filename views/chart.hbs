@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Employee Performance Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+    table { border-collapse: collapse; width: 80%; margin: 30px auto; }
+    th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
+    img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+    canvas { max-width: 60px; max-height: 60px; }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #d3c1c1; font-family: Arial, sans-serif;">
+  <h2 style="text-align:center">Mechanic Performance Report</h2>
+  <table>
+    <thead style="background-color: #000000; color: white;">
+      <tr style="background-color: #efe8ec; white-space: nowrap;">
+        <th style="background-color: #000000; white-space: nowrap;">Employee Name</th>
+        <th style="background-color: #000000; white-space: nowrap;">Employee ID</th>
+        <th style="background-color: #000000; white-space: nowrap;">NPT Percentage</th>
+        <th style="background-color: #000000; white-space: nowrap;">Performance Chart</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#each employees}}
+      <tr>
+        <td>{{this.name}}</td>
+        <td>{{this.id}}</td>
+        <td>{{this.nptPercentage}}</td>
+        <td><canvas id="chart{{@index}}"></canvas></td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+</body>
+</html>
