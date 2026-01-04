@@ -16,7 +16,7 @@ import { TasksService } from './tasks.service';
         debug: true,
         connectionTimeout: 10000,
         auth: {
-          user: 'e-leave@bca-daily.com',
+          user: 'lt-mechanic@bca-daily.com',
           pass: '@Manozaga0',
         },
       },

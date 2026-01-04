@@ -2,7 +2,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
 import { formatDate } from './util/helper';
+import { MailerService } from '@nestjs-modules/mailer';
+import { readFileSync, createReadStream, rename } from 'fs';
 import e from 'express';
+import { promises } from 'dns';
 interface LoginRequest {
   companyCode: string;
   username: string;
@@ -11,8 +14,8 @@ interface LoginRequest {
 
 const loginData: LoginRequest = {
   companyCode: 'BCA',
-  username: '007902',
-  password: 'manozaga0',
+  username: 'superadmin',
+  password: 'bcaltm!@#',
 };
 
 const employee_name = [
@@ -54,6 +57,7 @@ const employee_name = [
 
 @Injectable()
 export class AppService {
+  private readonly mailService: MailerService;
   private readonly logger = new Logger(AppService.name);
 
   async getAccessToken() {
@@ -73,118 +77,114 @@ export class AppService {
   async getTicketReport() {
     const accessToken = await this.getAccessToken();
 
-    const repair_tickets = axios.get(
-      'https://bca-ltm.ltlabs.co/msv/tickets/api/tickets',
-      {
-      params: {
-      pageSize: 10,
-      currentPage: 1,
-      reportedDt: `${formatDate(new Date())}~${formatDate(new Date())}`,
-      ticketType: 'r',
-      status: 17168,
-      sort: 'a.reportedDt',
-      sortDirection: 'desc',
-        },
-        headers: {
-          Accept: 'application/json, text/plain, */*',
-          'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8,km;q=0.7',
-          Authorization: `Bearer ${accessToken.accessToken}`,
-          'Cache-Control': 'no-cache',
-          Cookie:
-            '_gcl_au=1.1.1403546763.1731925210; _hjSessionUser_2572333=eyJpZCI6IjQ0NTEyMjY1LTc1ZGMtNWRlZi04MzMwLTliNDhlZmRmMDZmZiIsImNyZWF0ZWQiOjE3MzE5MjUyMTIzOTcsImV4aXN0aW5nIjp0cnVlfQ==; _ga=GA1.1.1665779777.1731925210; _ga_Y8STE1XM07=GS1.1.1731925209.1.1.1731926457.57.0.0',
-          DNT: '1',
-          Language: 'null',
-          Pragma: 'no-cache',
-          Priority: 'u=1, i',
-          Referer: 'https://bca-ltm.ltlabs.co/tickets',
-          'Sec-Ch-Ua':
-            '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
-          'Sec-Ch-Ua-Mobile': '?1',
-          'Sec-Ch-Ua-Platform': '"Android"',
-          'Sec-Fetch-Dest': 'empty',
-          'Sec-Fetch-Mode': 'cors',
-          'Sec-Fetch-Site': 'same-origin',
-          'User-Agent':
-            'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36',
-        },
-      },
-    );
+    const repair_tickets = await fetch("https://bca-ltm.ltlabs.co/msv/tickets/api/tickets?pageSize=10&currentPage=1&reportedDt=2026-01-03~2026-01-03&ticketType=r&status=17168&sort=a.reportedDt&sortDirection=desc&nextMaintDate=", {
+                                 "headers": {
+                                    "accept": "application/json, text/plain, */*",
+                                    "accept-language": "en-US,en;q=0.9",
+                                    "authorization": `Bearer ${accessToken.accessToken}`,
+                                    "if-none-match": "W/\"393a-7cFr68UkvEk/9NyALMc0n71Zwcs\"",
+                                    "language": "null",
+                                    "priority": "u=1, i",
+                                    "sec-ch-ua": "\"Google Chrome\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+                                    "sec-ch-ua-mobile": "?1",
+                                    "sec-ch-ua-platform": "\"Android\"",
+                                    "sec-fetch-dest": "empty",
+                                    "sec-fetch-mode": "cors",
+                                    "sec-fetch-site": "same-origin",
+                                    "Referer": "https://bca-ltm.ltlabs.co/tickets"
+                                  },
+                                  "body": null,
+                                  "method": "GET"
+                                });
 
-    const maintenance_tickets = axios.get(
-      'https://bca-ltm.ltlabs.co/msv/tickets/api/tickets',
-      {
-        params: {
-          pageSize: 1000,
-          currentPage: 1,
-          reportedDt: `${formatDate(new Date())}~${formatDate(new Date())}`,
-          ticketType: 'm',
-          status: 17192,
-          sort: 'a.reportedDt',
-          sortDirection: 'desc',
-        },
-        headers: {
-          Accept: 'application/json, text/plain, */*',
-          'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8,km;q=0.7',
-          Authorization: `Bearer ${accessToken.accessToken}`,
-          'Cache-Control': 'no-cache',
-          Cookie:
-            '_gcl_au=1.1.1403546763.1731925210; _hjSessionUser_2572333=eyJpZCI6IjQ0NTEyMjY1LTc1ZGMtNWRlZi04MzMwLTliNDhlZmRmMDZmZiIsImNyZWF0ZWQiOjE3MzE5MjUyMTIzOTcsImV4aXN0aW5nIjp0cnVlfQ==; _ga=GA1.1.1665779777.1731925210; _ga_Y8STE1XM07=GS1.1.1731925209.1.1.1731926457.57.0.0',
-          DNT: '1',
-          Language: 'null',
-          Pragma: 'no-cache',
-          Priority: 'u=1, i',
-          Referer: 'https://bca-ltm.ltlabs.co/tickets',
-          'Sec-Ch-Ua':
-            '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
-          'Sec-Ch-Ua-Mobile': '?1',
-          'Sec-Ch-Ua-Platform': '"Android"',
-          'Sec-Fetch-Dest': 'empty',
-          'Sec-Fetch-Mode': 'cors',
-          'Sec-Fetch-Site': 'same-origin',
-          'User-Agent':
-            'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36',
-        },
-      },
-    );
+    try {
+      if (!repair_tickets.ok) {
+      const text = await repair_tickets.text().catch(() => '');
+      throw new Error(`Failed to fetch repair tickets: ${repair_tickets.status} ${text}`);
+      }
+      const repairData = await repair_tickets.json();
+      console.log('Repair Tickets:', repairData);
+      return repairData;
+    } catch (err) {
+      this.logger.error('Error fetching/parsing repair tickets', err as any);
+      throw err;
+    }
 
-    return [repair_tickets, maintenance_tickets];
+    // const maintenance_tickets = axios.get(
+    //   'https://bca-ltm.ltlabs.co/msv/tickets/api/tickets',
+    //   {
+    //     params: {
+    //       pageSize: 1000,
+    //       currentPage: 1,
+    //       reportedDt: `${formatDate(new Date())}~${formatDate(new Date())}`,
+    //       ticketType: 'm',
+    //       status: 17192,
+    //       sort: 'a.reportedDt',
+    //       sortDirection: 'desc',
+    //     },
+    //     headers: {
+    //       Accept: 'application/json, text/plain, */*',
+    //       'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8,km;q=0.7',
+    //       Authorization: `Bearer ${accessToken.accessToken}`,
+    //       'Cache-Control': 'no-cache',
+    //       Cookie:
+    //         '_gcl_au=1.1.1403546763.1731925210; _hjSessionUser_2572333=eyJpZCI6IjQ0NTEyMjY1LTc1ZGMtNWRlZi04MzMwLTliNDhlZmRmMDZmZiIsImNyZWF0ZWQiOjE3MzE5MjUyMTIzOTcsImV4aXN0aW5nIjp0cnVlfQ==; _ga=GA1.1.1665779777.1731925210; _ga_Y8STE1XM07=GS1.1.1731925209.1.1.1731926457.57.0.0',
+    //       DNT: '1',
+    //       Language: 'null',
+    //       Pragma: 'no-cache',
+    //       Priority: 'u=1, i',
+    //       Referer: 'https://bca-ltm.ltlabs.co/tickets',
+    //       'Sec-Ch-Ua':
+    //         '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+    //       'Sec-Ch-Ua-Mobile': '?1',
+    //       'Sec-Ch-Ua-Platform': '"Android"',
+    //       'Sec-Fetch-Dest': 'empty',
+    //       'Sec-Fetch-Mode': 'cors',
+    //       'Sec-Fetch-Site': 'same-origin',
+    //       'User-Agent':
+    //         'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36',
+    //     },
+    //   },
+    // );
+
+    return repair_tickets;
   }
 
- sumInrepairByGrabbedBy(tickets) {
-  const map = {};
-  tickets.forEach(ticket => {
-    // skip if no grabbedBy (sometimes might be null/undefined)
-    if (!ticket.grabbedBy) return;
-    // treat null/undefined inrepairDuration as 0
-    const duration = typeof ticket.inrepairDuration === 'number' ? ticket.inrepairDuration : 0;
-    if (!map[ticket.grabbedBy]) {
-      map[ticket.grabbedBy] = 0;
-    }
-    map[ticket.grabbedBy] += duration;
-  });
+  sumInrepairByGrabbedBy(tickets) {
+    const map = {};
+    tickets.forEach(ticket => {
+      // skip if no grabbedBy (sometimes might be null/undefined)
+      if (!ticket.grabbedBy) return;
+      // treat null/undefined inrepairDuration as 0
+      const duration = typeof ticket.inrepairDuration === 'number' ? ticket.inrepairDuration : 0;
+      if (!map[ticket.grabbedBy]) {
+        map[ticket.grabbedBy] = 0;
+      }
+      map[ticket.grabbedBy] += duration;
+    });
 
-  // transform map to array of objects
-  return Object.entries(map).map(([employeeId, totalRepairDuration]) => ({
-    employeeId,
-    totalRepairDuration
-  }));
-}
+    // transform map to array of objects
+    return Object.entries(map).map(([employeeId, totalRepairDuration]) => ({
+      employeeId,
+      totalRepairDuration
+    }));
+  }
 
- sumInMaintenanceByGrabbedBy(tickets) {
-  const map = {};
-  tickets.forEach(ticket => {
-    if (!ticket.grabbedBy) return;
-    const duration = typeof ticket.closedDuration === 'number' ? ticket.closedDuration : 0;
-    if (!map[ticket.grabbedBy]) {
-      map[ticket.grabbedBy] = 0;
-    }
-    map[ticket.grabbedBy] += duration;
-  });
+  sumInMaintenanceByGrabbedBy(tickets) {
+    const map = {};
+    tickets.forEach(ticket => {
+      if (!ticket.grabbedBy) return;
+      const duration = typeof ticket.closedDuration === 'number' ? ticket.closedDuration : 0;
+      if (!map[ticket.grabbedBy]) {
+        map[ticket.grabbedBy] = 0;
+      }
+      map[ticket.grabbedBy] += duration;
+    });
 
-  return Object.entries(map).map(([employeeId]) => ({
-    employeeId
-  }));
-}
+    return Object.entries(map).map(([employeeId]) => ({
+      employeeId
+    }));
+  }
 
   async dailyReport() {
 
@@ -200,15 +200,6 @@ export class AppService {
       };
     }),
    }
-
-   const [repair_tickets, maintenance_tickets] = await this.getTicketReport();
-   const repairTickets = (await repair_tickets).data.tickets.result;
-   const mainTenanceTickets = (await maintenance_tickets).data.tickets.result;
-   const sumRepairTickets = this.sumInrepairByGrabbedBy(repairTickets);
-   const sumMaintenanceTickets = this.sumInMaintenanceByGrabbedBy(mainTenanceTickets);
-   console.log(sumMaintenanceTickets)
-  //  const sumMaintenanceTickets = this.sumMaintenanceTickets((await maintenance_tickets).data);
-    return sumRepairTickets;
   }
 
   async generateChart() {
@@ -252,4 +243,60 @@ export class AppService {
     await myChart.toFile('./images/mychart.png');
     return myChart.getUrl();
   }
+
+  // async sendMail(id: any) {
+
+  //   const leave = await this.LeaveApplicationRepository.$findOne('id', id?.id)
+
+  //   const employee = await this.employeeRepository.$findOne('employee_id', leave?.employee_id);
+
+  //   const filePath = './src/modules/e-leave/html/self-email.hbs';
+  //   const pngPath = `./src/png/${leave?.id}`
+  //   const html = readFileSync(filePath, 'utf-8');
+  //   const template = Handlebars.compile(html);
+
+  //   leave.status = 'Success'
+  //   leave.save();
+
+  //   const payload = {
+
+  //     employee_id: employee?.employee_id,
+  //     hash_id: leave?.hash_id,
+  //     receiver_type: 'download',
+  //     approver_id: employee?.manager_id,
+  //     leave_app_id: leave?.id,
+  //     pngPath
+
+  //   }
+
+  //   const path = `./png/${leave?.id}.png`;
+
+  //   const file = readFileSync(path)
+
+  //   const compiled = template(data);
+
+  //   this.mailService.sendMail({
+  //     to: `${data?.employeeEmail}`,
+  //     from: `"Leave Approved" <admin@manozagahostinger.online>`,
+  //     cc: [`wama.skyhi@gmail.com`],
+  //     subject: `Leave Request Approved`,
+  //     html: compiled,
+  //     attachments: [
+  //       {
+  //         filename: `E-Leave-${payload?.employee_id}.png`,
+  //         content: file,
+  //         contentType: 'image/png'
+  //       }
+  //     ]
+  //   })
+  //   .then((res:any) => {
+  //     console.log(res)
+  //   })
+  //   .catch((err:any) => {
+  //     console.log('Error ',err)
+  //   });
+
+  //   return compiled;
+  // }
+
 }
